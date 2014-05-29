@@ -36,13 +36,12 @@ When /I (un)?check the following ratings: (.*)/ do |uncheck, rating_list|
   #   iterate over the ratings and reuse the "When I check..." or
   #   "When I uncheck..." steps in lines 89-95 of web_steps.rb
   
-  #debugger
   # split the ratings "RG   ,  S, T   , X" => ["RG", "S", "T", "X"]
   rating_list = rating_list.gsub(/\s/, '').split(',')
   
   # do the loop :)
   rating_list.each do |rating|
-    # decide if it's check or uncheck
+    # decide if it's uncheck or check
     if uncheck == "un"
       step(%{I uncheck "ratings_#{rating}"})
     else
@@ -54,13 +53,56 @@ end
 
 Then /I should see all the movies/ do
   # Make sure that all the movies in the app are visible in the table
-  #debugger
-  rows = Movie.all.length
-  value = 10
-  if rows.should == value
+  value = Movie.count
+  rows = page.body.split("<tbody>")[1].scan(/<tr>/m).size
+  if page.body.respond_to? :should
     rows.should == value 
   else
     assert_equal rows, value
   end
   #flunk "Unimplemented"
+end
+
+Then /^(?:|I )should see movies with ratings: (.*)/ do |rating_list|
+  # split the ratings "RG   ,  S, T   , X" => ["RG", "S", "T", "X"]
+  rating_list = rating_list.gsub(/\s/, '').split(',')
+  
+  # do the loop :)
+  rating_list.each do |rating|
+    if page.body.respond_to? :should
+      page.body.should =~ /<td>#{rating}<\/td>/m
+    else
+      assert_no_match(/<td>#{rating}<\/td>/m, page.body)
+    end
+  end
+end
+
+Then /^(?:|I )should not see movies with ratings: (.*)/ do |rating_list|
+  # split the ratings "RG   ,  S, T   , X" => ["RG", "S", "T", "X"]
+  rating_list = rating_list.gsub(/\s/, '').split(',')
+  
+  # do the loop :)
+  rating_list.each do |rating|
+    if page.body.respond_to? :should
+      page.body.should_not =~ /<td>#{rating}<\/td>/m
+    else
+      assert_match(/<td>#{rating}<\/td>/m, page.body)
+    end
+  end
+end
+
+Then /^(?:|I )should see checkboxes (un)?checked for movies with ratings: (.*)/ do |uncheck, rating_list|
+  # split the ratings "RG   ,  S, T   , X" => ["RG", "S", "T", "X"]
+  rating_list = rating_list.gsub(/\s/, '').split(',')
+  
+  # do the loop :)
+  rating_list.each do |rating|
+    if page.body.respond_to? :should
+      if uncheck == "un"
+        find("#ratings_#{rating}").should_not be_checked
+      else
+        find("#ratings_#{rating}").should be_checked
+      end
+    end
+  end
 end
